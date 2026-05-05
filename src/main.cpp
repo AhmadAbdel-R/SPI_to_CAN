@@ -60,7 +60,7 @@ void initCAN()
 }
 
 // === GENERAL CAN MESSAGE TRANSMISSION ===
-void transmitCANMessage(byte *data, byte length, uint16_t id)
+void transmitCANMessage(const byte *data, byte length, uint16_t id)
 {
   if (CAN.sendMsgBuf(id, 0, length, data) == CAN_OK)
   {
@@ -86,7 +86,14 @@ void readPWMandReport()
   }
 
   float dutyCycle = (float)highTime / (highTime + lowTime);
-  float resistance = (90.0 * 1.2) / (dutyCycle - 0.05) - 1.2; // Calculate insulation resistance based on duty cycle, found in the datasheet
+  // Protect against divide-by-near-zero around the model's lower duty threshold.
+  if (dutyCycle <= 0.051f)
+  {
+    Serial.println("PWM Duty Cycle Out of Range!");
+    transmitPWMError();
+    return;
+  }
+  float resistance = (90.0f * 1.2f) / (dutyCycle - 0.05f) - 1.2f; // Example conversion model from datasheet guidance.
 
   float batteryVoltage = readBatteryVoltage();
 
